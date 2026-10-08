@@ -12,4 +12,60 @@ plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.7.0'
 }
 
+// ---------------------------------------------------------------------------
+// Java 17 toolchain location
+// ---------------------------------------------------------------------------
+// ForgeGradle 6 for 1.20.1 compiles against Java 17. This is resolved here, before the build
+// starts, because Gradle reads the JDK search paths while it creates the build session:
+//   1) an org.gradle.java.installations.paths you set in gradle.properties always wins;
+//   2) otherwise a JDK 17 found in JAVA_HOME, next to this repository, or in this project
+//      directory is used;
+//   3) if nothing local matches, set org.gradle.java.installations.auto-download=true in
+//      gradle.properties and the foojay resolver above downloads Temurin 17 from Adoptium.
+import java.nio.file.Files
+import java.nio.file.Path
+
+def isJava17 = { Path home ->
+    if (home == null || !Files.isDirectory(home)) {
+        return false
+    }
+    def release = home.resolve('release')
+    if (Files.isRegularFile(release)) {
+        try {
+            return Files.readAllLines(release).any { it.startsWith('JAVA_VERSION=') && it.contains('17') }
+        } catch (Exception ignored) {
+            return false
+        }
+    }
+    // No release file (trimmed builds): accept a launcher and let the compiler judge.
+    return Files.isRegularFile(home.resolve('bin/java.exe')) || Files.isRegularFile(home.resolve('bin/java'))
+}
+
+def configured = System.getProperty('org.gradle.java.installations.paths')
+if (!configured) {
+    def candidates = []
+    if (System.getenv('JAVA_HOME')) {
+        candidates << Path.of(System.getenv('JAVA_HOME'))
+    }
+    def root = settingsDir.toPath().toAbsolutePath()
+    candidates << root.parent
+    candidates << root
+    [root.parent, root].each { base ->
+        if (base != null && Files.isDirectory(base)) {
+            try (def stream = Files.list(base)) {
+                stream.filter { Files.isDirectory(it) }.forEach { candidates << it }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+    def java17 = candidates.find { isJava17(it) }
+    if (java17 != null) {
+        System.setProperty('org.gradle.java.installations.paths', java17.toAbsolutePath().toString())
+        logger.lifecycle("TimelessTimer: Java 17 toolchain -> ${java17.toAbsolutePath()}")
+    } else {
+        logger.lifecycle('TimelessTimer: no local Java 17 found. Set org.gradle.java.installations.paths in '
+                + 'gradle.properties, or enable org.gradle.java.installations.auto-download to let Gradle fetch one.')
+    }
+}
+
 rootProject.name = 'timelesstimer'

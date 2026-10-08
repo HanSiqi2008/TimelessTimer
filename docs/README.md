@@ -9,7 +9,7 @@
 
 | 路径 | 说明 |
 |---|---|
-| `TimelessTimer/` | 完整 Gradle 工程（含源码、资源、构建脚本） |
+| `TimelessTimer/` | 完整 Gradle 工程（含 gradle wrapper、CI 工作流、源码、资源、构建脚本） |
 | `TimelessTimer/src/main/java/com/hsq08/timelesstimer/` | 模组源码，共 13 个类 |
 | `TimelessTimer/build/libs/timelesstimer-0.0.1.jar` | 构建产物，直接丢进服务端 `mods/` |
 | `forge-server/` | 用于实测的 Forge 1.20.1 服务端（自带 JRE，模组已放入 `mods/`） |
@@ -216,15 +216,19 @@ LuckPerms 是**软依赖**：通过反射调用，未安装或 API 不可用时�
 
 ## 7 构建
 
+克隆后无需任何本地配置，直接：
+
 ```bash
 cd TimelessTimer
 ./gradlew build            # Windows: gradlew.bat build
 ```
 
-- 产物：`TimelessTimer/build/libs/timelesstimer-0.0.1.jar`
-- 需要 JDK 17 工具链；`gradle.properties` 里的 `org.gradle.java.installations.paths` 指向本机 JDK 17。换机器时改成自己的 JDK 17 路径，或删掉该行（连同 `auto-download=false`）让 Gradle 自行下载。
+- 产物：`build/libs/timelesstimer-0.0.1.jar`
+- **Gradle 发行版**：wrapper 已包含（`gradlew`、`gradlew.bat`、`gradle-wrapper.jar`），首次运行会自动下载 Gradle 8.8。下载源用的是**华为云镜像**（`mirrors.huaweicloud.com`），它与官方 `services.gradle.org` 是同一份文件，因此仍按官方 SHA-256 校验；若镜像将来失效，把 `gradle/wrapper/gradle-wrapper.properties` 里的 `distributionUrl` 换回注释中给出的官方地址即可。
+- **Java 17 工具链**：`settings.gradle` 会依次在 `JAVA_HOME`、本仓库的上一级目录、本项目目录里寻找 JDK 17；也可以用 `gradle.properties` 里的 `org.gradle.java.installations.paths` 指定，或打开 `org.gradle.java.installations.auto-download=true` 让 foojay 解析器自动下载 Temurin 17。启动时会打印一行 `TimelessTimer: Java 17 toolchain -> ...` 说明最终用了哪个 JDK。
 - 运行期无需 LuckPerms；`mods.toml` 里对 `luckperms` 的依赖声明为 `mandatory = false`。
 - `build.gradle` 优先使用项目内的 `build/` 目录；若该目录不可写（受限工作区），自动改用项目旁的 `.build/`，也可用 `-PbuildDir=<路径>` 强制指定。
+- 仓库自带 GitHub Actions 工作流（`.github/workflows/build.yml`）：push 到 `main` 时在全新环境里跑一次 `./gradlew build` 并上传 jar，用来持续证明"克隆即可构建"。
 
 ### 本次构建结果（证据）
 

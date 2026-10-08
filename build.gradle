@@ -15,11 +15,9 @@ plugins {
 
 // Java 17 toolchain.
 //
-// ForgeGradle 6 for 1.20.1 compiles against Java 17, and this project is configured to use a local
-// JDK 17 through org.gradle.java.installations.paths in gradle.properties, because Gradle's own
-// provisioning downloads Temurin from Adoptium through GitHub and stalls on some networks. Set that
-// property to your own JDK 17, or delete it (together with auto-download=false) to let Gradle fetch
-// one itself.
+// ForgeGradle 6 for 1.20.1 compiles against Java 17. Which JDK that is gets decided in
+// settings.gradle, which checks JAVA_HOME, the directory next to this repository and this project
+// directory in turn; see the comments there and in gradle.properties.
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
 }
